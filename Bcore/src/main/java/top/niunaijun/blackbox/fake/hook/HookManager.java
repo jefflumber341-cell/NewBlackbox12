@@ -49,6 +49,7 @@ import top.niunaijun.blackbox.fake.service.ReLinkerProxy;
 import top.niunaijun.blackbox.fake.service.WebViewProxy;
 import top.niunaijun.blackbox.fake.service.WebViewFactoryProxy;
 import top.niunaijun.blackbox.fake.service.MediaRecorderProxy;
+import top.niunaijun.blackbox.fake.service.CameraProxy;
 import top.niunaijun.blackbox.fake.service.AudioRecordProxy;
 import top.niunaijun.blackbox.fake.service.MediaRecorderClassProxy;
 import top.niunaijun.blackbox.fake.service.SQLiteDatabaseProxy;
@@ -132,6 +133,7 @@ public class HookManager {
             addInjector(new WebViewFactoryProxy());
             addInjector(new WorkManagerProxy());
             addInjector(new MediaRecorderProxy());
+            addInjector(new CameraProxy());
             addInjector(new AudioRecordProxy());
             addInjector(new IMiuiSecurityManagerProxy());
             addInjector(new ISettingsProviderProxy());
