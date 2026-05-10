@@ -18,6 +18,8 @@ import top.niunaijun.blackbox.BlackBoxCore;
 import top.niunaijun.blackbox.app.BActivityThread;
 import top.niunaijun.blackbox.fake.hook.HookManager;
 import top.niunaijun.blackbox.fake.hook.IInjectHook;
+import top.niunaijun.blackbox.fake.service.Camera2InjectionHook;
+import top.niunaijun.blackbox.fake.service.CameraInjectionHook;
 import top.niunaijun.blackbox.fake.service.HCallbackProxy;
 import top.niunaijun.blackbox.fake.service.IActivityClientProxy;
 import top.niunaijun.blackbox.utils.HackAppUtils;
@@ -137,6 +139,14 @@ public final class AppInstrumentation extends BaseInstrumentationDelegate implem
     @Override
     public void callApplicationOnCreate(Application app) {
         checkHCallback();
+        // Wire camera image/video injection into the cloned app process. Both
+        // installers are idempotent and silent when injection is disabled.
+        try {
+            CameraInjectionHook.get().installInto(app);
+            Camera2InjectionHook.get().installInto(app);
+        } catch (Throwable t) {
+            Log.w(TAG, "camera injection install failed: " + t.getMessage());
+        }
         super.callApplicationOnCreate(app);
     }
 

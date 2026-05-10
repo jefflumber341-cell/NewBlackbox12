@@ -6,6 +6,51 @@
 
 ### New Features
 
+#### Camera Image / Video Injection — actually wired
+Image and video injection (Settings → Camera Injection) now reaches cloned
+apps. Previously the `CameraInjection` and `Camera2Injection` singletons
+existed but no execution path ever invoked them, because:
+
+- `CameraProxy`'s `@ProxyMethod` map was dead — `Camera`'s `setPreviewCallback*`
+  entry-points are routed straight to native code without going through any
+  `InvocationHandler`, so the framework's reflective hook layer never saw the
+  call.
+- `Camera2Injection.renderCurrentFrameInto()` had no caller.
+
+**Fix:**
+- New `CameraInjectionHook` patches each live `Camera` instance's
+  package-private `mEventHandler` (a plain `Handler`, not native). Every
+  `CAMERA_MSG_PREVIEW_FRAME` (`msg.what == 16`) gets its NV21 payload
+  rewritten in-flight from `CameraInjection.getNv21Frame(w, h)` before the
+  app's preview callback runs — covering `setPreviewCallback`,
+  `setPreviewCallbackWithBuffer` and `setOneShotPreviewCallback` at once.
+- New `Camera2InjectionHook` runs a low-frequency (~30 fps) renderer that
+  pushes the current bitmap into registered Camera2 output `Surface`s via
+  the existing `Camera2Injection.renderCurrentFrameInto()` API.
+- Both installers are wired into the cloned-app process from
+  `AppInstrumentation.callApplicationOnCreate(...)`. Idempotent and silent
+  when injection is disabled.
+- `CameraProxy.{SetPreviewCallback,SetPreviewCallbackWithBuffer,
+  SetOneShotPreviewCallback}` now also call `CameraInjectionHook.attach(...)`
+  so any reflective dispatch path that did reach them still installs the
+  per-instance patch.
+
+**Files Changed / Added:**
+- `Bcore/src/main/java/top/niunaijun/blackbox/fake/service/CameraInjectionHook.java` (new)
+- `Bcore/src/main/java/top/niunaijun/blackbox/fake/service/Camera2InjectionHook.java` (new)
+- `Bcore/src/main/java/top/niunaijun/blackbox/fake/service/CameraProxy.java`
+- `Bcore/src/main/java/top/niunaijun/blackbox/fake/delegate/AppInstrumentation.java`
+
+**Tech-stack / Permissions impact:** none. No new gradle dependency, no new
+`AndroidManifest.xml` permission, no DI/state-management change (architecture
+remains plain Java singletons under `Bcore`, identical to the existing
+`MediaRecorderProxy`/`CameraProxy` style). The Settings UI (`SettingFragment`,
+`BlackBoxLoader`) is untouched and the unidirectional path
+*UI → BlackBoxLoader → CameraInjection on disk → cloned-process pickup* is
+preserved.
+
+---
+
 #### VPN Network Mode Toggle
 Added a new setting to choose between VPN and normal network mode for sandboxed apps.
 
