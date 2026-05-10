@@ -8,6 +8,7 @@ import top.niunaijun.blackbox.BlackBoxCore
 import top.niunaijun.blackbox.app.BActivityThread
 import top.niunaijun.blackbox.app.configuration.AppLifecycleCallback
 import top.niunaijun.blackbox.app.configuration.ClientConfiguration
+import top.niunaijun.blackbox.fake.service.CameraInjection
 import top.niunaijun.blackboxa.app.App
 import top.niunaijun.blackboxa.app.rocker.RockerManager
 import top.niunaijun.blackboxa.biz.cache.AppSharedPreferenceDelegate
@@ -24,6 +25,7 @@ class BlackBoxLoader {
     private var mUseVpnNetwork by AppSharedPreferenceDelegate(App.getContext(), false)
 
     private var mDisableFlagSecure by AppSharedPreferenceDelegate(App.getContext(), false)
+    private var mCameraInjectionImagePath by AppSharedPreferenceDelegate(App.getContext(), "")
 
     fun hideRoot(): Boolean {
         return try {
@@ -110,6 +112,24 @@ class BlackBoxLoader {
         }
     }
 
+
+    fun cameraInjectionImagePath(): String {
+        return try {
+            mCameraInjectionImagePath
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting cameraInjectionImagePath: ${e.message}")
+            ""
+        }
+    }
+
+    fun invalidCameraInjectionImagePath(path: String?) {
+        try {
+            this.mCameraInjectionImagePath = path ?: ""
+            CameraInjection.get().setImagePath(path?.takeIf { it.isNotBlank() })
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting cameraInjectionImagePath: ${e.message}")
+        }
+    }
     fun getBlackBoxCore(): BlackBoxCore {
         return try {
             BlackBoxCore.get()
@@ -299,6 +319,7 @@ class BlackBoxLoader {
     }
 
     fun doOnCreate(context: Context) {
+        invalidCameraInjectionImagePath(cameraInjectionImagePath().takeIf { it.isNotBlank() })
         try {
             BlackBoxCore.get().doCreate()
 
