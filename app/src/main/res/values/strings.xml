@@ -60,6 +60,14 @@
     <string name="use_vpn_network_summary">Route traffic through VPN for sandboxed apps (may improve network access)</string>
     <string name="disable_flag_secure">Disable Flag Secure</string>
     <string name="disable_flag_secure_summary">Allow screenshots and screen recording in apps</string>
+    <string name="camera_injection_image">Camera Injection Image</string>
+    <string name="camera_injection_image_summary">Select an image used for fake camera preview frames</string>
+    <string name="camera_injection_clear">Clear Camera Injection Image</string>
+    <string name="camera_injection_clear_summary">Disable fake camera image injection</string>
+    <string name="camera_injection_not_set">No image selected</string>
+    <string name="camera_injection_set_success">Camera injection image set</string>
+    <string name="camera_injection_set_failed">Failed to set camera injection image</string>
+    <string name="camera_injection_cleared">Camera injection image cleared</string>
     <string name="gms_manager">GMS Manager</string>
     <string name="jump_gms">Go to Gms Manager</string>
     <string name="enable_gms">Enable Service</string>
