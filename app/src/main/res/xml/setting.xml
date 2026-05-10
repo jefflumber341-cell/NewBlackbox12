@@ -37,6 +37,11 @@
                 android:summary="@string/camera_injection_image_summary" />
 
         <Preference
+                android:key="camera_injection_video"
+                android:title="@string/camera_injection_video"
+                android:summary="@string/camera_injection_video_summary" />
+
+        <Preference
                 android:key="camera_injection_clear"
                 android:title="@string/camera_injection_clear"
                 android:summary="@string/camera_injection_clear_summary" />
