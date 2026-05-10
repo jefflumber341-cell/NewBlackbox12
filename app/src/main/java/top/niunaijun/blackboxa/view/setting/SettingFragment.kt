@@ -25,6 +25,7 @@ class SettingFragment : PreferenceFragmentCompat() {
             AppManager.mBlackBoxLoader.invalidCameraInjectionImagePath(target.absolutePath)
             refreshCameraInjectionSummary()
             toast(R.string.camera_injection_set_success)
+            toast(R.string.camera_injection_camera2_note)
         }.onFailure {
             toast(R.string.camera_injection_set_failed)
         }
