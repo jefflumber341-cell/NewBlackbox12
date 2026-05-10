@@ -122,12 +122,30 @@ class BlackBoxLoader {
         }
     }
 
+    
+    fun cameraInjectionSourcePath(): String = cameraInjectionImagePath()
+
     fun invalidCameraInjectionImagePath(path: String?) {
+        invalidCameraInjectionSourcePath(path)
+    }
+
+    
+    fun invalidCameraInjectionVideoPath(path: String?) {
+        invalidCameraInjectionSourcePath(path)
+    }
+
+    /**
+     * Single entry point used by the settings UI for both image and video
+     * injection. The core layer ([CameraInjection]) auto-detects the source
+     * type by file extension, so the loader does not need to remember it
+     * separately.
+     */
+    fun invalidCameraInjectionSourcePath(path: String?) {
         try {
             this.mCameraInjectionImagePath = path ?: ""
-            CameraInjection.get().setImagePath(path?.takeIf { it.isNotBlank() })
+            CameraInjection.get().setSourcePath(path?.takeIf { it.isNotBlank() })
         } catch (e: Exception) {
-            Log.e(TAG, "Error setting cameraInjectionImagePath: ${e.message}")
+            Log.e(TAG, "Error setting cameraInjectionSourcePath: ${e.message}")
         }
     }
     fun getBlackBoxCore(): BlackBoxCore {
@@ -319,7 +337,7 @@ class BlackBoxLoader {
     }
 
     fun doOnCreate(context: Context) {
-        invalidCameraInjectionImagePath(cameraInjectionImagePath().takeIf { it.isNotBlank() })
+        invalidCameraInjectionSourcePath(cameraInjectionSourcePath().takeIf { it.isNotBlank() })
         try {
             BlackBoxCore.get().doCreate()
 

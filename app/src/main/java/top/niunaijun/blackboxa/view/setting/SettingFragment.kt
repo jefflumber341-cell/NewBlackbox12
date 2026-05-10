@@ -13,6 +13,7 @@ import top.niunaijun.blackboxa.view.gms.GmsManagerActivity
 
 class SettingFragment : PreferenceFragmentCompat() {
     private var cameraImagePreference: Preference? = null
+    private var cameraVideoPreference: Preference? = null
     private val imagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@registerForActivityResult
         val context = context ?: return@registerForActivityResult
@@ -22,7 +23,24 @@ class SettingFragment : PreferenceFragmentCompat() {
                 requireNotNull(input) { "Input stream is null" }
                 target.outputStream().use { output -> input.copyTo(output) }
             }
-            AppManager.mBlackBoxLoader.invalidCameraInjectionImagePath(target.absolutePath)
+            AppManager.mBlackBoxLoader.invalidCameraInjectionSourcePath(target.absolutePath)
+            refreshCameraInjectionSummary()
+            toast(R.string.camera_injection_set_success)
+            toast(R.string.camera_injection_camera2_note)
+        }.onFailure {
+            toast(R.string.camera_injection_set_failed)
+        }
+    }
+    private val videoPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@registerForActivityResult
+        val context = context ?: return@registerForActivityResult
+        val target = File(context.filesDir, "camera_injection.mp4")
+        runCatching {
+            context.contentResolver.openInputStream(uri).use { input ->
+                requireNotNull(input) { "Input stream is null" }
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            AppManager.mBlackBoxLoader.invalidCameraInjectionSourcePath(target.absolutePath)
             refreshCameraInjectionSummary()
             toast(R.string.camera_injection_set_success)
             toast(R.string.camera_injection_camera2_note)
@@ -74,8 +92,13 @@ class SettingFragment : PreferenceFragmentCompat() {
             imagePicker.launch("image/*")
             true
         }
+        cameraVideoPreference = findPreference("camera_injection_video")
+        cameraVideoPreference?.setOnPreferenceClickListener {
+            videoPicker.launch("video/*")
+            true
+        }
         findPreference<Preference>("camera_injection_clear")?.setOnPreferenceClickListener {
-            AppManager.mBlackBoxLoader.invalidCameraInjectionImagePath(null)
+            AppManager.mBlackBoxLoader.invalidCameraInjectionSourcePath(null)
             refreshCameraInjectionSummary()
             toast(R.string.camera_injection_cleared)
             true
@@ -84,9 +107,10 @@ class SettingFragment : PreferenceFragmentCompat() {
     }
 
     private fun refreshCameraInjectionSummary() {
-        val path = AppManager.mBlackBoxLoader.cameraInjectionImagePath()
-        cameraImagePreference?.summary =
-                if (path.isBlank()) getString(R.string.camera_injection_not_set) else path
+        val path = AppManager.mBlackBoxLoader.cameraInjectionSourcePath()
+        val summary = if (path.isBlank()) getString(R.string.camera_injection_not_set) else path
+        cameraImagePreference?.summary = summary
+        cameraVideoPreference?.summary = summary
     }
 
     private fun initGms() {

@@ -12,15 +12,23 @@ import top.niunaijun.blackbox.utils.Slog;
 
 /**
  * Hooks the legacy {@link android.hardware.Camera} (Camera1) API so that any
- * cloned app receives the customized image (held by {@link CameraInjection})
- * instead of real camera frames in its preview callback.
+ * cloned app receives the customized media (held by {@link CameraInjection})
+ * instead of real camera frames in its preview callback. The injected media
+ * may be either an image or a video — {@link CameraInjection} returns the
+ * appropriate NV21 buffer transparently.
  *
  * <p>We do NOT touch the open / startPreview path — the system camera is still
  * opened normally. We only swap the {@link Camera.PreviewCallback} the app
  * registers, so every frame it receives carries our injected NV21 buffer.
  *
  * <p>Style note: matches the existing pattern used by {@link MediaRecorderProxy}
- * (no DI, no ViewModel — this is a low-level reflective hook).
+ * (no DI, no ViewModel — this is a low-level reflective hook). Note that this
+ * proxy historically had an empty {@link #inject(Object, Object)} and a {@code
+ * null} {@link #getWho()}, which made the parent's {@link
+ * ClassInvocationStub#injectHook()} return early before scanning {@link
+ * ProxyMethod} annotations. We override {@link #injectHook()} below so the
+ * {@code MethodHook} map is always populated and {@link #wrapPreviewCallback}
+ * remains usable as a public reflective entry-point.
  */
 public class CameraProxy extends ClassInvocationStub {
     public static final String TAG = "CameraProxy";
@@ -44,6 +52,25 @@ public class CameraProxy extends ClassInvocationStub {
         return false;
     }
 
+    /**
+     * The parent's {@code injectHook()} bails out when {@code getWho()} returns
+     * {@code null}, which historically prevented the {@link ProxyMethod}
+     * annotation scan from running for this class — leaving the method-hook
+     * map empty. Run a lightweight scan ourselves so the inner {@link
+     * MethodHook} classes are discoverable for any reflective dispatch path.
+     */
+    @Override
+    public void injectHook() {
+        try {
+            onBindMethod();
+            for (Class<?> declaredClass : this.getClass().getDeclaredClasses()) {
+                initAnnotation(declaredClass);
+            }
+        } catch (Throwable t) {
+            Slog.d(TAG, "injectHook scan failed: " + t.getMessage());
+        }
+    }
+
     
     private static int getPreviewWidth(Camera camera) {
         try {
@@ -65,6 +92,14 @@ public class CameraProxy extends ClassInvocationStub {
         } catch (Throwable ignored) {
         }
         return 480;
+    }
+
+    
+    public static Camera.PreviewCallback wrapPreviewCallback(Camera.PreviewCallback delegate) {
+        if (delegate == null || delegate instanceof InjectingPreviewCallback) {
+            return delegate;
+        }
+        return new InjectingPreviewCallback(delegate);
     }
 
     
