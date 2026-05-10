@@ -1,8 +1,10 @@
 package top.niunaijun.blackboxa.view.setting
 
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import java.io.File
 import top.niunaijun.blackbox.BlackBoxCore
 import top.niunaijun.blackboxa.R
 import top.niunaijun.blackboxa.app.AppManager
@@ -10,6 +12,24 @@ import top.niunaijun.blackboxa.util.toast
 import top.niunaijun.blackboxa.view.gms.GmsManagerActivity
 
 class SettingFragment : PreferenceFragmentCompat() {
+    private var cameraImagePreference: Preference? = null
+    private val imagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@registerForActivityResult
+        val context = context ?: return@registerForActivityResult
+        val target = File(context.filesDir, "camera_injection.jpg")
+        runCatching {
+            context.contentResolver.openInputStream(uri).use { input ->
+                requireNotNull(input) { "Input stream is null" }
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            AppManager.mBlackBoxLoader.invalidCameraInjectionImagePath(target.absolutePath)
+            refreshCameraInjectionSummary()
+            toast(R.string.camera_injection_set_success)
+            toast(R.string.camera_injection_camera2_note)
+        }.onFailure {
+            toast(R.string.camera_injection_set_failed)
+        }
+    }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.setting, rootKey)
@@ -45,6 +65,28 @@ class SettingFragment : PreferenceFragmentCompat() {
         }
 
         initSendLogs()
+        initCameraInjection()
+    }
+
+    private fun initCameraInjection() {
+        cameraImagePreference = findPreference("camera_injection_image")
+        cameraImagePreference?.setOnPreferenceClickListener {
+            imagePicker.launch("image/*")
+            true
+        }
+        findPreference<Preference>("camera_injection_clear")?.setOnPreferenceClickListener {
+            AppManager.mBlackBoxLoader.invalidCameraInjectionImagePath(null)
+            refreshCameraInjectionSummary()
+            toast(R.string.camera_injection_cleared)
+            true
+        }
+        refreshCameraInjectionSummary()
+    }
+
+    private fun refreshCameraInjectionSummary() {
+        val path = AppManager.mBlackBoxLoader.cameraInjectionImagePath()
+        cameraImagePreference?.summary =
+                if (path.isBlank()) getString(R.string.camera_injection_not_set) else path
     }
 
     private fun initGms() {

@@ -32,6 +32,16 @@
                 app:summary="@string/disable_flag_secure_summary" />
 
         <Preference
+                android:key="camera_injection_image"
+                android:title="@string/camera_injection_image"
+                android:summary="@string/camera_injection_image_summary" />
+
+        <Preference
+                android:key="camera_injection_clear"
+                android:title="@string/camera_injection_clear"
+                android:summary="@string/camera_injection_clear_summary" />
+
+        <Preference
                 android:key="send_logs"
                 android:title="Send Logs"
                 android:summary="Upload debug logs to developer" />

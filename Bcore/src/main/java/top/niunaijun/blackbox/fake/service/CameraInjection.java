@@ -2,7 +2,12 @@ package top.niunaijun.blackbox.fake.service;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 
+import top.niunaijun.blackbox.BlackBoxCore;
 import top.niunaijun.blackbox.utils.Slog;
 
 
@@ -22,6 +27,7 @@ public final class CameraInjection {
     private static final CameraInjection sInstance = new CameraInjection();
 
     private volatile String mImagePath;
+    private volatile long mConfigLastModified;
 
     
     private String mCachedPath;
@@ -49,6 +55,7 @@ public final class CameraInjection {
             mCachedNv21 = null;
             mCachedWidth = 0;
             mCachedHeight = 0;
+            persistPath(path);
         }
     }
 
@@ -57,6 +64,7 @@ public final class CameraInjection {
     }
 
     public boolean isEnabled() {
+        syncPathFromDiskIfNeeded();
         return mImagePath != null;
     }
 
@@ -66,6 +74,7 @@ public final class CameraInjection {
      * the configured image cannot be decoded.
      */
     public synchronized byte[] getNv21Frame(int width, int height) {
+        syncPathFromDiskIfNeeded();
         final String path = mImagePath;
         if (path == null || width <= 0 || height <= 0) {
             return null;
@@ -104,6 +113,76 @@ public final class CameraInjection {
         } catch (Throwable t) {
             Slog.d(TAG, "getNv21Frame failed: " + t.getMessage());
             return null;
+        }
+    }
+
+    private File getConfigFile() {
+        if (BlackBoxCore.getContext() == null) return null;
+        return new File(BlackBoxCore.getContext().getFilesDir(), "camera_injection_path.txt");
+    }
+
+    private void persistPath(String path) {
+        try {
+            File config = getConfigFile();
+            if (config == null) return;
+            if (path == null || path.length() == 0) {
+                if (config.exists()) {
+                    config.delete();
+                }
+            } else {
+                FileOutputStream fos = new FileOutputStream(config, false);
+                try {
+                    fos.write(path.getBytes(StandardCharsets.UTF_8));
+                } finally {
+                    fos.close();
+                }
+            }
+            mConfigLastModified = config.exists() ? config.lastModified() : 0L;
+        } catch (Throwable t) {
+            Slog.d(TAG, "persistPath failed: " + t.getMessage());
+        }
+    }
+
+    private void syncPathFromDiskIfNeeded() {
+        try {
+            File config = getConfigFile();
+            if (config == null) return;
+            long lm = config.exists() ? config.lastModified() : 0L;
+            if (lm == mConfigLastModified) return;
+            String path = null;
+            if (lm > 0L) {
+                FileInputStream fis = new FileInputStream(config);
+                byte[] raw;
+                try {
+                    raw = new byte[(int) config.length()];
+                    int read = fis.read(raw);
+                    if (read <= 0) {
+                        raw = new byte[0];
+                    } else if (read < raw.length) {
+                        byte[] exact = new byte[read];
+                        System.arraycopy(raw, 0, exact, 0, read);
+                        raw = exact;
+                    }
+                } finally {
+                    fis.close();
+                }
+                String value = new String(raw, StandardCharsets.UTF_8).trim();
+                if (value.length() > 0) {
+                    path = value;
+                }
+            }
+            synchronized (this) {
+                if ((path == null && mImagePath != null) || (path != null && !path.equals(mImagePath))) {
+                    mImagePath = path;
+                    mCachedPath = null;
+                    mCachedNv21 = null;
+                    mCachedWidth = 0;
+                    mCachedHeight = 0;
+                }
+                mConfigLastModified = lm;
+            }
+        } catch (Throwable t) {
+            Slog.d(TAG, "syncPathFromDiskIfNeeded failed: " + t.getMessage());
         }
     }
 
@@ -155,3 +234,4 @@ public final class CameraInjection {
         }
         return nv21;
     }
+}
