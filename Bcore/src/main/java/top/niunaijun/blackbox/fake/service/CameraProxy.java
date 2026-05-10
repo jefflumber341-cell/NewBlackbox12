@@ -157,6 +157,9 @@ public class CameraProxy extends ClassInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             try {
                 wrapCallbackArg(args);
+                if (who instanceof Camera) {
+                    CameraInjectionHook.get().attach((Camera) who);
+                }
             } catch (Throwable t) {
                 Slog.d(TAG, "setPreviewCallback wrap failed: " + t.getMessage());
             }
@@ -171,6 +174,9 @@ public class CameraProxy extends ClassInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             try {
                 wrapCallbackArg(args);
+                if (who instanceof Camera) {
+                    CameraInjectionHook.get().attach((Camera) who);
+                }
             } catch (Throwable t) {
                 Slog.d(TAG, "setPreviewCallbackWithBuffer wrap failed: " + t.getMessage());
             }
@@ -185,6 +191,9 @@ public class CameraProxy extends ClassInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             try {
                 wrapCallbackArg(args);
+                if (who instanceof Camera) {
+                    CameraInjectionHook.get().attach((Camera) who);
+                }
             } catch (Throwable t) {
                 Slog.d(TAG, "setOneShotPreviewCallback wrap failed: " + t.getMessage());
             }
