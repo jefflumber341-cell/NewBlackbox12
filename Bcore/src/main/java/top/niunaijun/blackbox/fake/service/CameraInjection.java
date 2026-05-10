@@ -155,3 +155,4 @@ public final class CameraInjection {
         }
         return nv21;
     }
+}
